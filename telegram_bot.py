@@ -23,16 +23,16 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
 
     if not url.startswith("http"):
-        await update.message.reply_text("Это не похоже на ссылку. Отправь URL статьи.")
+        await update.message.reply_text("Р­С‚Рѕ РЅРµ РїРѕС…РѕР¶Рµ РЅР° СЃСЃС‹Р»РєСѓ. РћС‚РїСЂР°РІСЊ URL СЃС‚Р°С‚СЊРё.")
         return
 
     if not is_valid_url(url):
         await update.message.reply_text(
-            "Ссылка должна быть с screenrant.com, cbr.com, collider.com или movieweb.com."
+            "РЎСЃС‹Р»РєР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ СЃ screenrant.com, cbr.com, collider.com РёР»Рё movieweb.com."
         )
         return
 
-    await update.message.reply_text("Обрабатываю статью (30–60 секунд)...")
+    await update.message.reply_text("РћР±СЂР°Р±Р°С‚С‹РІР°СЋ СЃС‚Р°С‚СЊСЋ (30вЂ“60 СЃРµРєСѓРЅРґ)...")
 
     try:
         result = extract_and_summarize(url)
@@ -48,24 +48,24 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_document(
             document=open(temp_filename, "rb"),
-            caption=f"Готово:\n{result['title']}"
+            caption=f"Р“РѕС‚РѕРІРѕ:\n{result['title']}"
         )
 
         os.remove(temp_filename)
 
     except Exception as e:
-        await update.message.reply_text(f"Ошибка: {str(e)}")
+        await update.message.reply_text(f"РћС€РёР±РєР°: {str(e)}")
 
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
-        raise Exception("Не задан TELEGRAM_BOT_TOKEN")
+        raise Exception("РќРµ Р·Р°РґР°РЅ TELEGRAM_BOT_TOKEN")
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
 
-    print("Бот запущен и ожидает сообщений...")
+    print("Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ Рё РѕР¶РёРґР°РµС‚ СЃРѕРѕР±С‰РµРЅРёР№...")
 
     app.run_polling()
 
