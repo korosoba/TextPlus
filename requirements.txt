@@ -3,3 +3,4 @@ trafilatura
 groq
 requests
 python-dotenv
+aiohttp
