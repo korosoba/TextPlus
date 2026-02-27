@@ -5,6 +5,9 @@ from extract_article import process_article
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
+if not TELEGRAM_BOT_TOKEN:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN не задан в Environment Variables")
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Отправь ссылку на статью.")
@@ -40,3 +43,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
