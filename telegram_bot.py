@@ -28,20 +28,15 @@ async def handle_request(request):
 
 # === Startup hook ===
 async def on_startup(app: web.Application):
-    # Запускаем Telegram polling внутри текущего loop
-    asyncio.create_task(app_telegram.initialize())   # init application
-    asyncio.create_task(app_telegram.start())        # start polling
-
-# === Shutdown hook ===
-async def on_cleanup(app: web.Application):
-    await app_telegram.stop()
-    await app_telegram.shutdown()
+    async def polling_task():
+        # run_polling в таске, не закрывает event loop
+        await app_telegram.run_polling(close_loop=False)
+    asyncio.create_task(polling_task())
 
 # === Aiohttp web app ===
 app = web.Application()
 app.router.add_get("/", handle_request)
 app.on_startup.append(on_startup)
-app.on_cleanup.append(on_cleanup)
 
 PORT = int(os.getenv("PORT", 8000))
 web.run_app(app, port=PORT)
