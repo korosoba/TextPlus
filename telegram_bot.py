@@ -1,4 +1,5 @@
 import os
+import asyncio
 from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
 from extract_article import process_article
@@ -6,7 +7,7 @@ from extract_article import process_article
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN не задан в Environment Variables")
+    raise RuntimeError("TELEGRAM_BOT_TOKEN не задан")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -30,6 +31,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    # 🔥 ВАЖНО для Python 3.14
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -37,10 +42,8 @@ def main():
 
     print("Бот запущен и ожидает сообщений...")
 
-    # ВАЖНО: без asyncio.run
     app.run_polling()
 
 
 if __name__ == "__main__":
     main()
-
