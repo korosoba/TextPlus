@@ -1,10 +1,10 @@
 import os
 import logging
+import asyncio
 from aiohttp import web
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# Настройка логов
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
@@ -14,30 +14,34 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise Exception("Не задан BOT_TOKEN в переменных окружения")
 
-# Пример хэндлера /start
+# === Telegram handlers ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Бот запущен и работает через WebService!")
+    await update.message.reply_text("Бот запущен через WebService!")
 
-# Создаём приложение Telegram
+# Создаём Telegram приложение
 app_telegram = ApplicationBuilder().token(BOT_TOKEN).build()
 app_telegram.add_handler(CommandHandler("start", start))
 
-# Адаптация под Render WebService
+# === Web handler ===
 async def handle_request(request):
-    # Можно проверять /health или просто отвечать OK
     return web.Response(text="Bot is running")
 
-async def start_bot(app):
-    """Запускаем polling в фоне"""
-    # polling запускается как таск
-    import asyncio
-    asyncio.create_task(app_telegram.run_polling())
+# === Startup hook ===
+async def on_startup(app: web.Application):
+    # Запускаем Telegram polling внутри текущего loop
+    asyncio.create_task(app_telegram.initialize())   # init application
+    asyncio.create_task(app_telegram.start())        # start polling
 
-# Создаём aiohttp веб-приложение
+# === Shutdown hook ===
+async def on_cleanup(app: web.Application):
+    await app_telegram.stop()
+    await app_telegram.shutdown()
+
+# === Aiohttp web app ===
 app = web.Application()
 app.router.add_get("/", handle_request)
-app.on_startup.append(lambda app: start_bot(app))
+app.on_startup.append(on_startup)
+app.on_cleanup.append(on_cleanup)
 
-# Render задаёт порт через переменную окружения PORT
 PORT = int(os.getenv("PORT", 8000))
 web.run_app(app, port=PORT)
