@@ -14,13 +14,13 @@ except ImportError:
 
 def extract_and_summarize(url: str) -> dict:
     """
-    Извлекает статью и делает Groq-саммари.
-    Возвращает словарь с результатами.
+    РР·РІР»РµРєР°РµС‚ СЃС‚Р°С‚СЊСЋ Рё РґРµР»Р°РµС‚ Groq-СЃР°РјРјР°СЂРё.
+    Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃР»РѕРІР°СЂСЊ СЃ СЂРµР·СѓР»СЊС‚Р°С‚Р°РјРё.
     """
 
     downloaded = trafilatura.fetch_url(url)
     if not downloaded:
-        raise Exception("Не удалось скачать страницу")
+        raise Exception("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєР°С‡Р°С‚СЊ СЃС‚СЂР°РЅРёС†Сѓ")
 
     metadata = trafilatura.extract_metadata(downloaded)
 
@@ -39,13 +39,13 @@ def extract_and_summarize(url: str) -> dict:
     )
 
     if not text or len(text.strip()) < 300:
-        raise Exception("Не удалось извлечь текст статьи")
+        raise Exception("РќРµ СѓРґР°Р»РѕСЃСЊ РёР·РІР»РµС‡СЊ С‚РµРєСЃС‚ СЃС‚Р°С‚СЊРё")
 
     if not GROQ_AVAILABLE:
-        raise Exception("Библиотека groq не установлена")
+        raise Exception("Р‘РёР±Р»РёРѕС‚РµРєР° groq РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅР°")
 
     if not os.getenv("GROQ_API_KEY"):
-        raise Exception("Не задан GROQ_API_KEY")
+        raise Exception("РќРµ Р·Р°РґР°РЅ GROQ_API_KEY")
 
     client = Groq()
 
@@ -57,15 +57,15 @@ def extract_and_summarize(url: str) -> dict:
             {
                 "role": "system",
                 "content": (
-                    "Ты эксперт по кино и сериалам. "
-                    "Напиши краткий пересказ статьи на русском языке (180–350 слов). "
-                    "Сфокусируйся на ключевых идеях, анализе и контексте. "
-                    "Избегай спойлеров."
+                    "РўС‹ СЌРєСЃРїРµСЂС‚ РїРѕ РєРёРЅРѕ Рё СЃРµСЂРёР°Р»Р°Рј. "
+                    "РќР°РїРёС€Рё РєСЂР°С‚РєРёР№ РїРµСЂРµСЃРєР°Р· СЃС‚Р°С‚СЊРё РЅР° СЂСѓСЃСЃРєРѕРј СЏР·С‹РєРµ (180вЂ“350 СЃР»РѕРІ). "
+                    "РЎС„РѕРєСѓСЃРёСЂСѓР№СЃСЏ РЅР° РєР»СЋС‡РµРІС‹С… РёРґРµСЏС…, Р°РЅР°Р»РёР·Рµ Рё РєРѕРЅС‚РµРєСЃС‚Рµ. "
+                    "РР·Р±РµРіР°Р№ СЃРїРѕР№Р»РµСЂРѕРІ."
                 )
             },
             {
                 "role": "user",
-                "content": f"Статья:\n{preview_text}"
+                "content": f"РЎС‚Р°С‚СЊСЏ:\n{preview_text}"
             }
         ],
         temperature=0.5,
