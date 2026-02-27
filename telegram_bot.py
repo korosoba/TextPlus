@@ -1,49 +1,59 @@
+# telegram_bot_web.py
 import os
 import asyncio
 from telegram import Update
-from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
-from extract_article import process_article
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from aiohttp import web
+from extract_article import extract_and_summarize
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+PORT = int(os.getenv("PORT", "8000"))
 
-if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN не задан")
-
-
+# --- простой хэндлер /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Отправь ссылку на статью.")
+    await update.message.reply_text("Бот запущен и работает!")
 
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = update.message.text.strip()
-
-    if not url.startswith("http"):
-        await update.message.reply_text("Пожалуйста, отправь корректную ссылку.")
+# --- хэндлер /summarize для статей ---
+async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Отправь команду вместе с ссылкой на статью: /summarize <URL>")
         return
-
-    await update.message.reply_text("Обрабатываю статью...")
-
+    url = context.args[0]
+    msg = await update.message.reply_text("Собираю статью и делаю краткий пересказ...")
     try:
-        result = process_article(url)
-        await update.message.reply_text(result[:4000], parse_mode="HTML")
+        result = extract_and_summarize(url)
+        summary_text = result.get("summary_text", "Нет результата")
+        title = result.get("title", "No title")
+        published = result.get("published", "Unknown date")
+        response = f"*{title}* ({published})\n\n{summary_text}"
+        await msg.edit_text(response, parse_mode="Markdown")
     except Exception as e:
-        await update.message.reply_text(f"Ошибка: {str(e)}")
+        await msg.edit_text(f"Ошибка при обработке статьи:\n{e}")
 
+# --- веб-сервер для Render ---
+async def handle(request):
+    return web.Response(text="OK")
 
-def main():
-    # 🔥 ВАЖНО для Python 3.14
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def main():
+    # 1️⃣ Запуск веб-сервера
+    app_web = web.Application()
+    app_web.router.add_get("/", handle)
+    runner = web.AppRunner(app_web)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"Web server listening on port {PORT}")
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    # 2️⃣ Настройка бота
+    app_bot = ApplicationBuilder().token(TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CommandHandler("summarize", summarize))
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # 3️⃣ Запуск polling в фоне
+    bot_task = asyncio.create_task(app_bot.run_polling())
 
-    print("Бот запущен и ожидает сообщений...")
-
-    app.run_polling()
-
+    # 4️⃣ Ждём polling и веб вместе
+    await bot_task
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
