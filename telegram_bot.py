@@ -1,5 +1,4 @@
 import os
-import asyncio
 from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
 from extract_article import process_article
@@ -22,12 +21,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         result = process_article(url)
-        await update.message.reply_text(result[:4000])
+        await update.message.reply_text(result[:4000], parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {str(e)}")
 
 
-async def main():
+def main():
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -35,8 +34,9 @@ async def main():
 
     print("Бот запущен и ожидает сообщений...")
 
-    await app.run_polling()
+    # ВАЖНО: без asyncio.run
+    app.run_polling()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
