@@ -2,7 +2,6 @@
 
 import trafilatura
 from datetime import datetime
-from pathlib import Path
 import os
 
 try:
@@ -12,23 +11,26 @@ except ImportError:
     GROQ_AVAILABLE = False
 
 
-def extract_and_summarize(url: str) -> dict:
+def process_article(url: str) -> str:
     """
-    Извлекает статью и делает Groq-саммари.
-    Возвращает словарь с результатами.
+    Извлекает статью по ссылке,
+    делает саммари через Groq
+    и возвращает готовый текст для Telegram.
     """
 
+    # 1️⃣ Скачиваем страницу
     downloaded = trafilatura.fetch_url(url)
     if not downloaded:
         raise Exception("Не удалось скачать страницу")
 
     metadata = trafilatura.extract_metadata(downloaded)
 
-    title = getattr(metadata, "title", "No title") if metadata else "No title"
+    title = getattr(metadata, "title", "Без названия") if metadata else "Без названия"
     pub_date = getattr(metadata, "date", None)
     if not pub_date:
         pub_date = datetime.utcnow().strftime("%Y-%m-%d")
 
+    # 2️⃣ Извлекаем текст статьи
     text = trafilatura.extract(
         downloaded,
         include_comments=False,
@@ -41,6 +43,7 @@ def extract_and_summarize(url: str) -> dict:
     if not text or len(text.strip()) < 300:
         raise Exception("Не удалось извлечь текст статьи")
 
+    # 3️⃣ Проверки Groq
     if not GROQ_AVAILABLE:
         raise Exception("Библиотека groq не установлена")
 
@@ -51,6 +54,7 @@ def extract_and_summarize(url: str) -> dict:
 
     preview_text = text[:12000].strip()
 
+    # 4️⃣ Запрос к Groq
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
@@ -75,10 +79,11 @@ def extract_and_summarize(url: str) -> dict:
 
     summary_text = response.choices[0].message.content.strip()
 
-    return {
-        "title": title,
-        "published": pub_date,
-        "text_length": len(text),
-        "summary_text": summary_text,
-        "model": response.model
-    }
+    # 5️⃣ Формируем красивый ответ для Telegram
+    result_text = (
+        f"📰 <b>{title}</b>\n"
+        f"📅 {pub_date}\n\n"
+        f"{summary_text}"
+    )
+
+    return result_text
